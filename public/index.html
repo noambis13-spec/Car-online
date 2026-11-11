@@ -93,10 +93,8 @@ input:focus,select:focus{border-color:var(--o)}
 #hTR{position:absolute;right:10px;top:10px;text-align:right;min-width:130px}
 #hLap{font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px}
 #hCam{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.2em;color:var(--o);margin-top:3px}
-#hPosBox{margin-top:8px;text-align:center;padding:7px 14px}
 #hPos{font-family:'Orbitron',sans-serif;font-weight:900;font-size:46px;line-height:1;color:#ffd24a;text-shadow:0 0 22px rgba(255,200,60,.5)}
 #hPos small{font-size:18px;color:var(--dim)}
-#hSpd{position:absolute;right:12px;bottom:12px;width:240px;padding:10px 14px 12px}
 #hSpdNum{font-family:'Orbitron',sans-serif;font-weight:900;font-size:68px;line-height:1;text-align:right;text-shadow:0 0 28px rgba(255,255,255,.18)}
 #hSpdNum small{font-size:15px;color:var(--dim);letter-spacing:.15em;margin-left:6px}
 #hRpm{display:block;width:100%;height:46px;margin-top:4px}
@@ -110,24 +108,83 @@ input:focus,select:focus{border-color:var(--o)}
 #hBanner{position:absolute;left:0;right:0;top:22%;text-align:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(20px,5vw,40px);text-shadow:0 0 30px #000;pointer-events:none}
 #hBanner.wrong{color:#ff3d3d;animation:bl .6s step-end infinite}
 #hBanner.fin{color:#ffd24a}
-#hBtns{position:absolute;left:10px;bottom:12px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
 .pill{border:1px solid var(--line);background:var(--glass);color:#fff;border-radius:11px;padding:9px 14px;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;cursor:pointer;touch-action:none}
 .pill.d{border-color:rgba(255,60,60,.5);color:#ff8080}
-#hTips{position:absolute;left:10px;bottom:112px;font-size:13px;line-height:1.6;color:var(--dim);padding:8px 12px}
 #hTips b{color:#fff}
 #touch{position:absolute;left:0;right:0;bottom:0;pointer-events:none}
 .tbtn{position:absolute;bottom:14px;border-radius:26px;background:rgba(14,8,30,.78);border:1.5px solid rgba(255,255,255,.22);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;pointer-events:auto;touch-action:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .tbtn.on{background:rgba(255,106,26,.45);border-color:var(--o);transform:scale(.95)}
-#tL{left:14px;width:112px;height:112px;font-size:46px}
-#tR{left:140px;width:112px;height:112px;font-size:46px}
-#tGas{right:14px;width:128px;height:128px;font-size:20px;background:rgba(30,180,110,.3);border-color:rgba(46,229,157,.6)}
-#tBrake{right:156px;width:92px;height:92px;font-size:13px;border-color:rgba(255,70,70,.6);background:rgba(200,40,40,.28)}
-#tRev{right:156px;bottom:114px;width:72px;height:72px;font-size:13px}
-#tDrift{right:14px;bottom:154px;width:80px;height:80px;font-size:12px;border-color:rgba(160,90,255,.7);background:rgba(120,60,220,.3)}
-body.touch #hSpd{bottom:152px;width:200px}
-body.touch #hSpdNum{font-size:52px}
-body.touch #hTips{display:none}
-body.touch #hBtns{left:auto;right:12px;bottom:auto;top:178px;flex-direction:row}
+
+/* ---------- HUD layout: shared ---------- */
+#hTR{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+#hLapBox,#hPosBox{position:relative;z-index:50}
+#hPosBox{text-align:center;padding:7px 14px}
+#hSpd{position:relative;z-index:49}
+#hBtns{position:absolute;display:flex;flex-direction:row;gap:8px;pointer-events:auto;z-index:60}
+#hTips{position:absolute;font-size:13px;line-height:1.6;color:var(--dim);padding:8px 12px}
+#hTips b{color:#fff}
+.tbtn{z-index:60}
+.pill .k{opacity:.7}
+
+/* =========== SYSTEM 1: DESKTOP (mouse + keyboard) =========== */
+@media (min-width:769px) and (hover:hover) and (pointer:fine){
+  #tRev{display:none}
+  #tL,#tR{bottom:14px;width:84px;height:84px;font-size:36px;border-radius:22px}
+  #tL{left:14px}
+  #tR{left:106px}
+  #hBtns{left:14px;bottom:108px;width:176px;justify-content:center}
+  .pill{padding:7px 10px;font-size:10px;white-space:nowrap}
+  #hTips{display:block;left:14px;bottom:152px;max-width:330px}
+  #tGas{right:14px;bottom:14px;width:104px;height:104px;font-size:18px;border-radius:24px;background:rgba(30,180,110,.3);border-color:rgba(46,229,157,.6)}
+  #tBrake{right:126px;bottom:14px;width:104px;height:104px;font-size:13px;border-radius:24px;border-color:rgba(255,70,70,.6);background:rgba(200,40,40,.28)}
+  #hSpd{position:fixed;right:14px;bottom:136px;width:230px;padding:8px 12px 10px}
+  #hSpdNum{font-size:44px}
+  #hSpdNum small{font-size:12px}
+  #hRpm{height:26px}
+  #hGear{font-size:24px}
+  #tDrift{right:14px;bottom:290px;width:80px;height:80px;font-size:12px;border-radius:22px;border-color:rgba(160,90,255,.7);background:rgba(120,60,220,.3)}
+}
+
+/* =========== SYSTEM 2: PHONE / TABLET (touch) =========== */
+@media (max-width:768px),(pointer:coarse){
+  #hud{--ab:clamp(60px,17vw,100px);--gas:clamp(72px,20vw,116px);--brk:clamp(60px,16vw,92px);--drf:clamp(52px,14vw,80px)}
+  #tRev{display:flex}
+  #hTips{display:none}
+  .pill .k{display:none}
+  #tL,#tR{bottom:14px;width:var(--ab);height:var(--ab);font-size:34px;border-radius:22px}
+  #tL{left:14px}
+  #tR{left:calc(14px + var(--ab) + 8px)}
+  #hBtns{left:14px;bottom:calc(14px + var(--ab) + 10px);width:calc(var(--ab)*2 + 8px);justify-content:center}
+  .pill{padding:7px 9px;font-size:10px;white-space:nowrap}
+  #tGas{right:14px;bottom:14px;width:var(--gas);height:var(--gas);font-size:17px;border-radius:24px;background:rgba(30,180,110,.3);border-color:rgba(46,229,157,.6)}
+  #tBrake{right:calc(14px + var(--gas) + 8px);bottom:14px;width:var(--brk);height:var(--brk);font-size:12px;border-radius:22px;border-color:rgba(255,70,70,.6);background:rgba(200,40,40,.28)}
+  #tDrift{right:14px;bottom:calc(14px + var(--gas) + 10px);width:var(--drf);height:var(--drf);font-size:11px;border-radius:20px;border-color:rgba(160,90,255,.7);background:rgba(120,60,220,.3)}
+  #tRev{right:calc(14px + var(--drf) + 8px);bottom:calc(14px + var(--gas) + 10px);width:var(--drf);height:var(--drf);font-size:12px;border-radius:20px}
+  #hTR{min-width:110px;gap:6px}
+  #hLapBox{padding:5px 10px}
+  #hLap{font-size:20px}
+  #hCam{font-size:7px;margin-top:1px}
+  #hPosBox{padding:4px 10px}
+  #hPos{font-size:30px}
+  #hPos small{font-size:12px}
+  #hSpd{align-self:flex-end;width:110px;max-width:110px;padding:5px 8px 6px}
+  #hSpd .hl{font-size:7px}
+  #hSpdNum{font-size:31px}
+  #hSpdNum small{font-size:7px;margin-left:3px}
+  #hRpm{height:14px;margin-top:2px}
+  #hGear{font-size:16px}
+  #hMode{display:none}
+  #hLapBox .hl,#hPosBox .hl{font-size:7px}
+}
+@media (max-width:768px) and (max-height:480px),(pointer:coarse) and (max-height:480px){
+  #hud{--ab:58px;--gas:70px;--brk:60px;--drf:46px}
+  #tL,#tR{font-size:26px}
+}
+@media (max-width:480px){
+  #hTL{min-width:130px;max-width:130px}
+  #hTimer{font-size:16px;padding:3px 8px;letter-spacing:.04em}
+}
+@media (max-width:380px){#hud #hTL{min-width:112px;max-width:112px}#hTimer{font-size:13px;padding:2px 6px}}
 @media (max-height:520px){#hMini{display:none}#hPosBox{padding:4px 10px}#hPos{font-size:32px}}
 @media (max-width:640px){#hTL{max-width:150px}#hMini{width:96px;height:96px}}
 
@@ -241,7 +298,7 @@ body.touch #hBtns{left:auto;right:12px;bottom:auto;top:178px;flex-direction:row}
   </div>
   <div id="hTimer" class="pan">01:00</div>
   <div id="hTR">
-    <div class="pan">
+    <div class="pan" id="hLapBox">
       <div class="hl">LAP</div>
       <div id="hLap">1 / 3</div>
       <div id="hCam">CHASE CAM</div>
@@ -250,26 +307,27 @@ body.touch #hBtns{left:auto;right:12px;bottom:auto;top:178px;flex-direction:row}
       <div class="hl">POSITION</div>
       <div id="hPos">1<small>/5</small></div>
     </div>
-  </div>
-  <div id="hCd"><div id="hCdN"></div></div>
-  <div id="hBanner"></div>
-  <div id="hSpd" class="pan">
+
+    <div id="hSpd" class="pan">
     <div class="hl">SPEED</div>
     <div id="hSpdNum">0<small>KM/H</small></div>
     <canvas id="hRpm" width="440" height="92"></canvas>
     <div class="hrow"><div><div class="hl">GEAR</div><div id="hGear">N</div></div><div id="hMode">IDLE</div></div>
   </div>
-  <div id="hBtns">
-    <button class="pill" id="btnCam" type="button">CAMERA (E)</button>
-    <button class="pill d" id="btnExit" type="button">EXIT</button>
   </div>
-  <div id="hTips" class="pan"><b>W / &#8593; / CTRL</b> gas &nbsp; <b>S / &#8595;</b> reverse<br><b>A D / &#8592; &#8594;</b> steer &nbsp; <b>SHIFT</b> brake<br><b>SPACE</b> drift &nbsp; <b>E</b> camera</div>
+  <div id="hCd"><div id="hCdN"></div></div>
+  <div id="hBanner"></div>
+  <div id="hBtns">
+    <button class="pill d" id="btnExit" type="button">EXIT <span class="k">R</span></button>
+    <button class="pill" id="btnCam" type="button">CAMERA <span class="k">E</span></button>
+  </div>
+  <div id="hTips" class="pan"><b>W / &#8593; / CTRL</b> gas | <b>S / &#8595;</b> reverse | <b>A D / &#8592; &#8594;</b> steer | <b>SHIFT</b> drift | <b>SPACE</b> brake | <b>E</b> camera | <b>R</b> exit</div>
   <div id="touch">
     <div class="tbtn" id="tL">&#9664;</div>
     <div class="tbtn" id="tR">&#9654;</div>
     <div class="tbtn" id="tGas">GAS</div>
     <div class="tbtn" id="tBrake">BRAKE</div>
-    <div class="tbtn" id="tRev">R</div>
+    <div class="tbtn" id="tRev">REV</div>
     <div class="tbtn" id="tDrift">DRIFT</div>
   </div>
 </div>
@@ -487,8 +545,8 @@ function keyMap(code) {
     case 'KeyS': case 'ArrowDown': return 'rev';
     case 'KeyA': case 'ArrowLeft': return 'left';
     case 'KeyD': case 'ArrowRight': return 'right';
-    case 'ShiftLeft': case 'ShiftRight': return 'brake';
-    case 'Space': return 'drift';
+    case 'ShiftLeft': case 'ShiftRight': return 'drift';
+    case 'Space': return 'brake';
     default: return null;
   }
 }
@@ -497,6 +555,7 @@ window.addEventListener('keydown', (e) => {
   const k = keyMap(e.code);
   if (k) { KEY[k] = 1; e.preventDefault(); }
   if (e.code === 'KeyE' && !e.repeat) { toggleCam(); e.preventDefault(); }
+  if (e.code === 'KeyR' && !e.repeat) { exitRace(); e.preventDefault(); }
 });
 window.addEventListener('keyup', (e) => {
   const k = keyMap(e.code);
@@ -2116,4 +2175,4 @@ function boot() {
 boot();
 </script>
 </body>
-</html>
+  </html>
