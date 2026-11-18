@@ -6,8 +6,10 @@ const { Server } = require('socket.io');
 
 const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 5;
-const TRACKS = ['circle', 'oval', 'windy'];
-const DURATIONS = [60, 120, 180];
+const TRACKS = ['sunset', 'city', 'mountain', 'coastal', 'serpent', 'hell', 'neon', 'circle', 'oval', 'windy'];
+const TYPES = ['circuit', 'sprint', 'drift', 'attack'];
+const LAPOPTS = [1, 3, 5, 0];
+const DURATIONS = [60, 120, 180, 300, 600];
 
 const rooms = {};
 
@@ -62,12 +64,14 @@ function publicRoom(room) {
     hostId: room.hostId,
     max: MAX_PLAYERS,
     started: room.started,
+    waiting: !!room.cfg,
     players: room.players.map((p) => ({
       id: p.id,
       name: p.name,
       color: p.color,
       carId: p.carId,
-      isHost: p.id === room.hostId
+      isHost: p.id === room.hostId,
+      ready: !!p.ready
     }))
   };
 }
@@ -86,17 +90,46 @@ function removePlayer(socket) {
   const idx = room.players.findIndex((p) => p.id === socket.id);
   if (idx >= 0) room.players.splice(idx, 1);
   if (room.players.length === 0) {
+    if (room.goTimer) clearTimeout(room.goTimer);
     delete rooms[code];
     return;
   }
   if (room.hostId === socket.id) {
     room.hostId = room.players[0].id;
   }
+  if (room.pos) delete room.pos[socket.id];
   if (room.started && room.players.every((p) => !p.racing)) {
     room.started = false;
   }
   io.to(code).emit('playerLeft', { id: socket.id });
   broadcastRoom(room);
+  maybeStart(room);
+}
+
+/* ---- server-authoritative race start ---- */
+const COUNTDOWN_MS = 5000;
+function maybeStart(room) {
+  if (room.started || !room.cfg || room.players.length === 0) return;
+  if (!room.players.every((p) => p.ready)) return;
+  const code = room.code, now = Date.now(), raceStartTime = now + COUNTDOWN_MS;
+  room.started = true;
+  room.raceStartTime = raceStartTime;
+  room.pos = {};
+  room.players.forEach((p) => { p.racing = true; });
+  const payload = Object.assign({}, room.cfg, {
+    seed: Math.floor(Math.random() * 1000000) + 1,
+    raceStartTime: raceStartTime,
+    serverNow: now,
+    players: publicRoom(room).players
+  });
+  room.players.forEach((p) => { p.ready = false; });
+  room.cfg = null;
+  io.to(code).emit('countdown_start', payload);
+  broadcastRoom(room);
+  if (room.goTimer) clearTimeout(room.goTimer);
+  room.goTimer = setTimeout(() => {
+    io.to(code).emit('race_go', { raceStartTime: raceStartTime, serverNow: Date.now() });
+  }, Math.max(0, raceStartTime - Date.now()));
 }
 
 function playerJoin(room, socket, data) {
@@ -105,7 +138,8 @@ function playerJoin(room, socket, data) {
     name: cleanName(data && data.name),
     color: cleanColor(data && data.color),
     carId: cleanCarId(data && data.carId),
-    racing: false
+    racing: false,
+    ready: false
   });
   socket.join(room.code);
   socket.data.roomCode = room.code;
@@ -202,20 +236,36 @@ io.on('connection', (socket) => {
       reply(cb, { error: 'Race already started' });
       return;
     }
-    const track = TRACKS.includes(data && data.track) ? data.track : 'circle';
-    const duration = DURATIONS.includes(Number(data && data.duration)) ? Number(data.duration) : 60;
-    room.started = true;
-    room.players.forEach((p) => {
-      p.racing = true;
-    });
-    const seed = Math.floor(Math.random() * 1000000) + 1;
-    io.to(code).emit('raceStart', {
-      track: track,
-      duration: duration,
-      seed: seed,
-      players: publicRoom(room).players
-    });
+    const track = TRACKS.includes(data && data.track) ? data.track : 'sunset';
+    const duration = DURATIONS.includes(Number(data && data.duration)) ? Number(data.duration) : 180;
+    const dm = data && data.dm === 'laps' ? 'laps' : 'time';
+    const laps = LAPOPTS.includes(Number(data && data.laps)) ? Number(data.laps) : 3;
+    const type = TYPES.includes(data && data.type) ? data.type : 'circuit';
+    const ramps = !!(data && data.ramps), obst = !!(data && data.obst);
+    room.cfg = { track: track, duration: duration, dm: dm, laps: laps, type: type, ramps: ramps, obst: obst };
+    const hp = room.players.find((p) => p.id === socket.id);
+    if (hp) hp.ready = true;
+    broadcastRoom(room);
+    maybeStart(room);
     reply(cb, { ok: true });
+  });
+
+  socket.on('setReady', (v) => {
+    const room = socket.data.roomCode ? rooms[socket.data.roomCode] : null;
+    if (!room || room.started) return;
+    const p = room.players.find((x) => x.id === socket.id);
+    if (!p) return;
+    p.ready = !!v;
+    broadcastRoom(room);
+    maybeStart(room);
+  });
+
+  socket.on('cancelStart', () => {
+    const room = socket.data.roomCode ? rooms[socket.data.roomCode] : null;
+    if (!room || room.started || room.hostId !== socket.id) return;
+    room.cfg = null;
+    room.players.forEach((p) => { p.ready = false; });
+    broadcastRoom(room);
   });
 
   socket.on('playerPos', (d) => {
@@ -223,8 +273,26 @@ io.on('connection', (socket) => {
     if (!code || !d) return;
     const room = rooms[code];
     if (!room || !room.started) return;
+    /* server-side collision validation: tell the sender when it overlaps another car */
+    const now = Date.now(), px = num(d.x), py = num(d.y), rad = Math.min(9, Math.max(2, num(d.rad) || 5));
+    if (!room.pos) room.pos = {};
+    room.pos[socket.id] = { x: px, y: py, rad: rad, t: now };
+    Object.keys(room.pos).forEach((oid) => {
+      if (oid === socket.id) return;
+      const o = room.pos[oid];
+      if (now - o.t > 400) return;
+      const dx = px - o.x, dy = py - o.y, rr = rad + o.rad, d2 = dx * dx + dy * dy;
+      if (d2 < rr * rr && d2 > 1e-6) {
+        const dd = Math.sqrt(d2);
+        socket.emit('bump', { id: oid, nx: dx / dd, nz: dy / dd, depth: rr - dd });
+      }
+    });
     socket.to(code).volatile.emit('playerPos', {
       id: socket.id,
+      t: now,
+      thr: num(d.thr),
+      bst: d.bst ? 1 : 0,
+      cp: num(d.cp),
       x: num(d.x),
       y: num(d.y),
       angle: num(d.angle),
@@ -237,7 +305,13 @@ io.on('connection', (socket) => {
       drift: d.drift ? 1 : 0,
       brake: d.brake ? 1 : 0,
       done: d.done ? 1 : 0,
-      tf: num(d.tf)
+      tf: num(d.tf),
+      h: num(d.h),
+      pit: num(d.pit),
+      rol: num(d.rol),
+      air: d.air ? 1 : 0,
+      pts: num(d.pts),
+      bl: num(d.bl)
     });
   });
 
@@ -249,6 +323,7 @@ io.on('connection', (socket) => {
     if (me) me.racing = false;
     if (room.started && room.players.every((p) => !p.racing)) {
       room.started = false;
+      room.pos = {};
     }
     broadcastRoom(room);
   });
